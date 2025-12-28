@@ -1,0 +1,85 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  password  String?   // Nullable for OAuth users
+  name      String
+  role      Role      @default(STUDENT)
+  student   Student?
+  teacher   Teacher?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  @@map("users")
+}
+
+model Student {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+  studentId   String   @unique // School ID number
+  gradeLevel  String
+  enrollments Enrollment[]
+  createdAt   DateTime @default(now())
+  
+  @@map("students")
+}
+
+model Teacher {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  courses   Course[]
+  createdAt DateTime @default(now())
+  
+  @@map("teachers")
+}
+
+model Course {
+  id          String       @id @default(cuid())
+  code        String       @unique // e.g., "MATH-101"
+  title       String
+  description String?
+  credits     Int
+  teacherId   String?
+  teacher     Teacher?     @relation(fields: [teacherId], references: [id])
+  enrollments Enrollment[]
+  createdAt   DateTime     @default(now())
+  
+  @@map("courses")
+}
+
+model Enrollment {
+  id        String   @id @default(cuid())
+  studentId String
+  courseId  String
+  student   Student  @relation(fields: [studentId], references: [id])
+  course    Course   @relation(fields: [courseId], references: [id])
+  grade     String?  // e.g., "A", "B+"
+  status    String   @default("ACTIVE") // ACTIVE, DROPPED, COMPLETED
+  enrolledAt DateTime @default(now())
+  
+  @@unique([studentId, courseId])
+  @@map("enrollments")
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+  PARENT
+}
